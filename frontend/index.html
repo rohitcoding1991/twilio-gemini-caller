@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Twilio + Gemini AI Caller Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 600px;
+            width: 100%;
+            padding: 40px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 28px;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #666;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .status-card {
+            background: #f7f7f7;
+            border-radius: 10px;
+            padding: 15px;
+            margin-bottom: 30px;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+
+        .status-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .status-label {
+            color: #666;
+        }
+
+        .status-value {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .status-value.ok {
+            color: #10b981;
+        }
+
+        .status-value.error {
+            color: #ef4444;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .result.success {
+            background: #d1fae5;
+            border: 1px solid #10b981;
+            color: #065f46;
+        }
+
+        .result.error {
+            background: #fee2e2;
+            border: 1px solid #ef4444;
+            color: #991b1b;
+        }
+
+        .result-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            color: #666;
+            font-size: 12px;
+        }
+
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Twilio + Gemini AI Caller</h1>
+        <p class="subtitle">Make AI-powered phone calls using Google's Gemini 2.0</p>
+
+        <div class="status-card">
+            <div class="status-item">
+                <span class="status-label">Twilio Status:</span>
+                <span class="status-value" id="twilioStatus">Checking...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Gemini Status:</span>
+                <span class="status-value" id="geminiStatus">Checking...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">WebSocket:</span>
+                <span class="status-value" id="wsStatus">Checking...</span>
+            </div>
+        </div>
+
+        <form id="callForm">
+            <div class="form-group">
+                <label for="phoneNumber">Phone Number</label>
+                <input
+                    type="tel"
+                    id="phoneNumber"
+                    name="phoneNumber"
+                    placeholder="+1234567890"
+                    required
+                    pattern="\+?[0-9]+"
+                >
+            </div>
+
+            <div class="form-group">
+                <label for="voiceId">AI Voice</label>
+                <select id="voiceId" name="voiceId">
+                    <option value="Puck">Puck (Default)</option>
+                    <option value="Charon">Charon</option>
+                    <option value="Fenrir">Fenrir</option>
+                    <option value="Kore">Kore</option>
+                    <option value="Aoede">Aoede</option>
+                    <option value="Leda">Leda</option>
+                    <option value="Orus">Orus</option>
+                    <option value="Zephyr">Zephyr</option>
+                </select>
+            </div>
+
+            <button type="submit" id="callButton">Start AI Call</button>
+        </form>
+
+        <div id="result" class="result"></div>
+
+        <div class="footer">
+            <p>Demo project showcasing Twilio Media Streams + Google Gemini 2.0 Live API</p>
+            <p><a href="https://github.com/himanshu077/twilio-gemini-caller" target="_blank">View on GitHub</a></p>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:5000';
+
+        // Check system status on load
+        async function checkStatus() {
+            try {
+                const response = await fetch(`${API_URL}/api/status`);
+                const data = await response.json();
+
+                document.getElementById('twilioStatus').textContent = data.twilio.configured ? 'Ready' : 'Not Configured';
+                document.getElementById('twilioStatus').className = `status-value ${data.twilio.configured ? 'ok' : 'error'}`;
+
+                document.getElementById('geminiStatus').textContent = data.gemini.configured ? 'Ready' : 'Not Configured';
+                document.getElementById('geminiStatus').className = `status-value ${data.gemini.configured ? 'ok' : 'error'}`;
+
+                document.getElementById('wsStatus').textContent = data.websocket.url || 'Unknown';
+                document.getElementById('wsStatus').className = 'status-value ok';
+            } catch (error) {
+                console.error('Status check failed:', error);
+                document.getElementById('twilioStatus').textContent = 'Error';
+                document.getElementById('twilioStatus').className = 'status-value error';
+                document.getElementById('geminiStatus').textContent = 'Error';
+                document.getElementById('geminiStatus').className = 'status-value error';
+                document.getElementById('wsStatus').textContent = 'Error';
+                document.getElementById('wsStatus').className = 'status-value error';
+            }
+        }
+
+        // Handle form submission
+        document.getElementById('callForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const phoneNumber = document.getElementById('phoneNumber').value;
+            const voiceId = document.getElementById('voiceId').value;
+            const button = document.getElementById('callButton');
+            const result = document.getElementById('result');
+
+            button.disabled = true;
+            button.textContent = 'Initiating Call...';
+            result.style.display = 'none';
+
+            try {
+                const response = await fetch(`${API_URL}/api/calls/initiate`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ phoneNumber, voiceId }),
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    result.className = 'result success';
+                    result.innerHTML = `
+                        <div class="result-title">Call Initiated Successfully!</div>
+                        <div>Call SID: ${data.callSid}</div>
+                        <div>Phone Number: ${data.phoneNumber}</div>
+                        <div>Status: ${data.status}</div>
+                    `;
+                    result.style.display = 'block';
+                } else {
+                    throw new Error(data.error || 'Failed to initiate call');
+                }
+            } catch (error) {
+                result.className = 'result error';
+                result.innerHTML = `
+                    <div class="result-title">Error</div>
+                    <div>${error.message}</div>
+                `;
+                result.style.display = 'block';
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Start AI Call';
+            }
+        });
+
+        // Check status on page load
+        checkStatus();
+
+        // Refresh status every 30 seconds
+        setInterval(checkStatus, 30000);
+    </script>
+</body>
+</html>
