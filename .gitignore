@@ -35,8 +35,8 @@ Thumbs.db
 tmp/
 temp/
 *.tmp
-temp_auto_push.bat
-temp_interactive_push.bat
 .gitignore
-config.bat
 branch_structure.json
+
+.env*
+!.env.example
